@@ -1,8 +1,20 @@
 import random
 import time
 import math
+from os import system, name
+
+def clear():
+  
+    # for windows
+    if name == 'nt':
+        _ = system('cls')
+  
+    # for mac and linux(here, os.name is 'posix')
+    else:
+        _ = system('clear')
 
 def intro_screen():
+  clear()
   print('                   PLAY NIM!!')
   print('*****************************************************')
   print('         Remove the last star to win!!!')

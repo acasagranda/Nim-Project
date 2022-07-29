@@ -15,6 +15,7 @@ def intro_screen():
       print('\nPlayers take turns removing stars from the board.')
       print('During a turn, players may choose stars from ONLY ONE row.')
       print('During a turn, players must remove at least one star but may remove up to all the stars in the row of their choice.')
+      print('Whoever removes the last star wins!')
     elif instructions == 'N' or instructions == 'n':
       ready_to_play = True
   
@@ -76,20 +77,8 @@ def rows_to_binary(row_size):
     row_binary_string.append(binary_string)
   return row_binary_string,max_digits
 
-#given the current board decide the computer's best move
-def determine_comp_move(row_size):
-  #change the decimal row values to binary, max_digits is the number of digits in the largest number
-  row_binary_string, max_digits = rows_to_binary(row_size)
-  #for each place value add up the digits in all rows
-  sum_rows = []
-  for digit in range(max_digits):
-    sum = 0
-    for num in row_binary_string:
-      sum += num[digit]
-    sum_rows.append(sum)
-  #find largest row
-  row_choice = row_size.index(max(row_size))
-  #calculate what the new row needs to be
+#calculate best move
+def calc_move(max_digits,row_binary_string,row_choice,sum_rows):
   new_row_list = []
   for i in range(max_digits):
     if sum_rows[i]%2 == 0:
@@ -103,9 +92,32 @@ def determine_comp_move(row_size):
   #change new_row string into a decimal number
   new_row_num = int(new_row_str,2)
   computer_num = row_size[row_choice] - new_row_num
-  #If computer_num is 0 there is no good move so just remove 1
+  return computer_num
+
+#given the current board decide the computer's best move
+def determine_comp_move(row_size):
+  #change the decimal row values to binary, max_digits is the number of digits in the largest number
+  row_binary_string, max_digits = rows_to_binary(row_size)
+  #for each place value add up the digits in all rows
+  sum_rows = []
+  for digit in range(max_digits):
+    sum = 0
+    for num in row_binary_string:
+      sum += num[digit]
+    sum_rows.append(sum)
+  #choose largest row
+  row_choice = row_size.index(max(row_size))
+  #calculate what the new row needs to be
+  computer_num = -1
+  while computer_num<0:
+    computer_num = calc_move(max_digits,row_binary_string,row_choice,sum_rows)
+    if computer_num<0: 
+      row_choice = (row_choice+1)%3
+      if row_size[row_choice]==0:
+        row_choice = (row_choice+1)%3
+  #If computer_num is 0 there is no good move so remove random
   if computer_num == 0:
-    computer_num = 1
+    computer_num = random.choice(range(1,row_size[row_choice]+1))
   return row_choice, computer_num
 
 def check_win(row_size):
@@ -138,14 +150,15 @@ while winner == 'neither':
     player_row,player_num = determine_player_move(row_size)
     row_size[player_row-1] -= player_num
     print_screen(row_size)
-    time.sleep(5)
     player_turn = 0
     if check_win(row_size):
       winner = 'player'
   else:
     computer_row,computer_num = determine_comp_move(row_size)
     row_size[computer_row] -= computer_num
-    print('The computer chooses to remove {num1} stars from row {row}.'.format(num1 = computer_num,row = computer_row+1))
+    time.sleep(1)
+    stars = 'star' if computer_num==1 else 'stars'
+    print('The computer chooses to remove {num1} {star} from row {row}.'.format(num1 = computer_num,star = stars,row = computer_row+1))
     print_screen(row_size)
     player_turn = 1
     if check_win(row_size):

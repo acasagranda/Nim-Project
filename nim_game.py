@@ -3,12 +3,11 @@ import time
 import math
 from os import system, name
 
+#clear screen at beginning of game
 def clear():
-  
     # for windows
     if name == 'nt':
         _ = system('cls')
-  
     # for mac and linux(here, os.name is 'posix')
     else:
         _ = system('clear')
@@ -24,7 +23,8 @@ def intro_screen():
     instructions = input('\nDo you want to see instructions on how to play?(Y or N): ')
     if instructions == 'Y' or instructions == 'y':
       ready_to_play = True
-      print('\nPlayers take turns removing stars from the board.')
+      print('\nINSTRUCTIONS:')
+      print('Players take turns removing stars from the board.')
       print('During a turn, players may choose stars from ONLY ONE row.')
       print('During a turn, players must remove at least one star but may remove up to all the stars in the row of their choice.')
       print('Whoever removes the last star wins!')
@@ -47,6 +47,20 @@ def print_screen(row_size):
     print('*', end=' ')
   print('\n')
 
+#ask player who goes first
+def whos_first():
+  choose_turn = False
+  while choose_turn == False:
+    turn = input('Do you want to go first? (Y or N):')
+    if turn == 'Y' or turn == 'y':
+      player_turn = 1
+      choose_turn = True
+    elif turn == 'N' or turn == 'n':
+      player_turn = 0
+      choose_turn = True
+  return player_turn
+
+
 def determine_player_move(row_size):
     player_row = -1
     while player_row not in [1,2,3]:
@@ -67,16 +81,16 @@ def determine_player_move(row_size):
 
 #convert row sizes to binary string
 def rows_to_binary(row_size):
-  #find the number of digits each binary number would be
+#find the number of digits each binary number would be
   num_binary_digits = []
   for row in row_size:
     if row == 0:
       num_binary_digits.append(0)
     else:
       num_binary_digits.append(int(math.floor(math.log2(row)))+1)
-  #find the maximun of those digits
+#find the maximun of those digits
   max_digits = max(num_binary_digits)
-  #make a list of the row sizes in a binary string and add any needed leading zeros to make all the same size
+#make a list of the row sizes in a binary string and add any needed leading zeros to make all the same size
   row_binary_string = []
   for index in range(3):
     row_binary = "{0:b}".format(int(row_size[index]))
@@ -90,48 +104,50 @@ def rows_to_binary(row_size):
   return row_binary_string,max_digits
 
 #calculate best move
-def calc_move(max_digits,row_binary_string,row_choice,sum_rows):
+def calc_move(computer_row,max_digits,row_binary_string,sum_place_values):
   new_row_list = []
   for i in range(max_digits):
-    if sum_rows[i]%2 == 0:
-      new_row_list.append(row_binary_string[row_choice][i])
+    if sum_place_values[i]%2 == 0:
+      new_row_list.append(row_binary_string[computer_row][i])
     else:
-      new_row_list.append(1 - row_binary_string[row_choice][i])
-  #put new_row into a string
+      new_row_list.append(1 - row_binary_string[computer_row][i])
+#put new_row into a string
   new_row_str = ""
   for num in new_row_list:
     new_row_str += str(num)
-  #change new_row string into a decimal number
+#change new_row string into a decimal number
   new_row_num = int(new_row_str,2)
-  computer_num = row_size[row_choice] - new_row_num
+  computer_num = row_size[computer_row] - new_row_num
   return computer_num
 
 #given the current board decide the computer's best move
 def determine_comp_move(row_size):
-  #change the decimal row values to binary, max_digits is the number of digits in the largest number
+#change the decimal row values to binary, max_digits is the number of digits in the largest binary number
   row_binary_string, max_digits = rows_to_binary(row_size)
-  #for each place value add up the digits in all rows
-  sum_rows = []
+#for each place value add up the digits in all rows
+  sum_place_values = []
   for digit in range(max_digits):
     sum = 0
     for num in row_binary_string:
       sum += num[digit]
-    sum_rows.append(sum)
-  #choose largest row
-  row_choice = row_size.index(max(row_size))
-  #calculate what the new row needs to be
-  computer_num = -1
-  while computer_num<0:
-    computer_num = calc_move(max_digits,row_binary_string,row_choice,sum_rows)
-    if computer_num<0: 
-      row_choice = (row_choice+1)%3
-      if row_size[row_choice]==0:
-        row_choice = (row_choice+1)%3
-  #If computer_num is 0 there is no good move so remove random
-  if computer_num == 0:
-    computer_num = random.choice(range(1,row_size[row_choice]+1))
-  return row_choice, computer_num
+    sum_place_values.append(sum)
+#choose computer row
+  place_value = -1
+  for index in range(max_digits):
+    if sum_place_values[index]%2 == 1:
+      place_value = index
+      break
+  if place_value == -1:  #no good move so choose random move
+    computer_row = random.choice([0,1,2])
+    while row_size[computer_row] == 0: computer_row = (computer_row+1)%3
+    computer_num = random.randint(1,row_size[computer_row])
+  else:  #find row with 1 in place value and calculate what new row needs to be
+    for computer_row in range(3):
+      if row_binary_string[computer_row][place_value] == 1: break
+    computer_num = calc_move(computer_row,max_digits,row_binary_string,sum_place_values)
+  return computer_row, computer_num
 
+#check to see if there is a winner
 def check_win(row_size):
   winner = False
   sum_size = 0
@@ -146,16 +162,7 @@ def check_win(row_size):
 intro_screen()
 row_size = choose_row_sizes()
 print_screen(row_size)
-choose_turn = False
-while choose_turn == False:
-  turn = input('Do you want to go first? (Y or N):')
-  if turn == 'Y' or turn == 'y':
-      player_turn = 1
-      choose_turn = True
-  elif turn == 'N' or turn == 'n':
-      player_turn = 0
-      choose_turn = True
-
+player_turn = whos_first()
 winner = 'neither'
 while winner == 'neither':
   if player_turn == 1:
@@ -181,3 +188,10 @@ else:
   print('\n\nThe computer wins this one.')
     
     
+
+
+#row_size is a list that contains the number of stars currently in each of the 3 rows
+#row_binary_string is a list of lists.  each list is a row and its list is the binary rep of row_size, 
+#    leading zeros added as needed
+#sum_place_values is the sum of the place values of binary reps
+#player_row and player_num are the player's choice of row and the number of stars they want to remove.
